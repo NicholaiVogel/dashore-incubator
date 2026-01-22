@@ -11,6 +11,9 @@
 	"name": "dashore-incubator",
 	"main": ".open-next/worker.js",
 	"compatibility_date": "2025-12-01",
+	"routes": [
+		{ "pattern": "fortura.cc", "custom_domain": true }
+	],
 	"compatibility_flags": [
 		"nodejs_compat",
 		"global_fetch_strictly_public"

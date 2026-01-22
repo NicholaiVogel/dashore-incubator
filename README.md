@@ -1,47 +1,76 @@
-# OpenNext Starter
+Dashore Incubator
+===
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+Next.js app deployed to Cloudflare Workers via OpenNext.
 
-## Getting Started
+Live at https://fortura.cc
 
-Read the documentation at https://opennext.js.org/cloudflare.
+**Note for AI Agents**: Do not overwrite CLAUDE.md or heavily modify .claude/ - these are version controlled with the codebase for continuity.
 
-## Develop
+Contributing
+---
 
-Run the Next.js development server:
+- [START-HERE.md](START-HERE.md) - quick start for new contributors
+- [CONTRIBUTING.md](CONTRIBUTING.md) - contribution workflow
+- [Documentation/](Documentation/) - commit messages, PR guidelines, and more
 
-```bash
-npm run dev
-# or similar package manager command
-```
+Setup
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Install dependencies:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+    bun install
 
-## Preview
+Copy the example env file and fill in your WorkOS credentials:
 
-Preview the application locally on the Cloudflare runtime:
+    cp .env.local.example .env.local
 
-```bash
-npm run preview
-# or similar package manager command
-```
+Required variables:
+- WORKOS_CLIENT_ID - from WorkOS dashboard
+- WORKOS_API_KEY - from WorkOS dashboard
+- WORKOS_COOKIE_PASSWORD - 32+ character secret for session encryption
 
-## Deploy
+grepai (optional)
+---
 
-Deploy the application to Cloudflare:
+This project uses grepai for semantic code search: https://github.com/yoanbernabeu/grepai
 
-```bash
-npm run deploy
-# or similar package manager command
-```
+Install:
 
-## Learn More
+    curl -sSL https://raw.githubusercontent.com/yoanbernabeu/grepai/main/install.sh | sh
 
-To learn more about Next.js, take a look at the following resources:
+Initialize and start the watch daemon:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+    grepai init
+    grepai watch
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Search example:
+
+    grepai search "authentication middleware" --json --compact
+
+Development
+---
+
+    bun dev
+
+Open http://localhost:3000
+
+Preview
+---
+
+Preview locally on the Cloudflare runtime:
+
+    bun run preview
+
+Deploy
+---
+
+Deploy to Cloudflare Workers:
+
+    bun run deploy
+
+For production secrets:
+
+    wrangler secret put WORKOS_CLIENT_ID
+    wrangler secret put WORKOS_API_KEY
+    wrangler secret put WORKOS_COOKIE_PASSWORD

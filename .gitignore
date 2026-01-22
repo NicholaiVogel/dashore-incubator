@@ -47,6 +47,12 @@ next-env.d.ts
 # wrangler files
 .wrangler
 .dev.vars*
-
-
 !.dev.vars.example
+
+# ide related files
+.vscode/
+.grepai/
+
+# CLAUDE and AI Code tool configurations, these are version controlled.
+!.claude/
+!CLAUDE.md
