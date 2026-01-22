@@ -22,6 +22,13 @@
       "when": 1769077551375,
       "tag": "0002_curly_spectrum",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1769083154035,
+      "tag": "0003_talented_lockheed",
+      "breakpoints": true
     }
   ]
 }

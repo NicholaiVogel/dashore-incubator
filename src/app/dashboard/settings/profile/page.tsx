@@ -1,19 +1,13 @@
 import { withAuth } from "@workos-inc/authkit-nextjs"
 import { redirect } from "next/navigation"
+
 import { AppSidebar } from "@/components/app-sidebar"
-import { ChartAreaInteractive } from "@/components/chart-area-interactive"
-import { DataTable } from "@/components/data-table"
-import { SectionCards } from "@/components/section-cards"
 import { SiteHeader } from "@/components/site-header"
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar"
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import { ProfileForm, ProfileFormSubmitButton } from "@/components/settings/profile-form"
 import { ensureProfile } from "@/app/actions/profile"
 
-import data from "./data.json"
-
-export default async function Page() {
+export default async function ProfilePage() {
   const { user } = await withAuth()
 
   if (!user) {
@@ -48,12 +42,22 @@ export default async function Page() {
         <SiteHeader />
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
-            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-              <SectionCards />
-              <div className="px-4 lg:px-6">
-                <ChartAreaInteractive />
+            <div className="px-4 py-8 lg:px-8">
+              <div className="mx-auto max-w-2xl">
+                <ProfileForm profile={profile}>
+                  <div className="mb-8 flex items-start justify-between">
+                    <div>
+                      <h1 className="text-2xl font-semibold tracking-tight">
+                        Profile Settings
+                      </h1>
+                      <p className="text-muted-foreground text-sm">
+                        Manage your profile information and preferences
+                      </p>
+                    </div>
+                    <ProfileFormSubmitButton />
+                  </div>
+                </ProfileForm>
               </div>
-              <DataTable data={data} />
             </div>
           </div>
         </div>

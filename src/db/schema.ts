@@ -45,7 +45,22 @@ export const wishlistCommentVotes = sqliteTable("wishlist_comment_votes", {
   createdAt: text("created_at").notNull(),
 })
 
+export const userProfiles = sqliteTable("user_profiles", {
+  id: text("id").primaryKey(), // WorkOS user ID
+  email: text("email").notNull(),
+  displayName: text("display_name"),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  bio: text("bio"),
+  avatarUrl: text("avatar_url"),
+  theme: text("theme").notNull().default("system"),
+  emailNotifications: text("email_notifications").notNull().default("true"),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+})
+
 export type WishlistItem = typeof wishlistItems.$inferSelect
 export type WishlistVote = typeof wishlistVotes.$inferSelect
 export type WishlistComment = typeof wishlistComments.$inferSelect
 export type WishlistCommentVote = typeof wishlistCommentVotes.$inferSelect
+export type UserProfile = typeof userProfiles.$inferSelect
