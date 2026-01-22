@@ -476,45 +476,32 @@ export async function getItemWithComments(itemId: string, userId: string) {
   }
 }
 
-export async function getWishlistStats(userId: string) {
+export interface WishlistStats {
+  totalItems: number
+  highPriority: number
+  yourSubmissions: number
+  totalBudget: number
+}
+
+export async function getWishlistStats(userId: string): Promise<WishlistStats> {
   const { env } = await getCloudflareContext()
   const db = getDb(env.DB)
 
   const allItems = await db.select().from(wishlistItems)
-  const allVotes = await db.select().from(wishlistVotes)
 
   const totalItems = allItems.length
-  const yourItems = allItems.filter((i) => i.submittedBy === userId).length
-
-  let mostWanted = null
-  if (allItems.length > 0) {
-    const itemScores = allItems.map((item) => {
-      const itemVotes = allVotes.filter((v) => v.itemId === item.id)
-      const upvotes = itemVotes.filter((v) => v.voteType === "up").length
-      const downvotes = itemVotes.filter((v) => v.voteType === "down").length
-      return {
-        item,
-        score: upvotes - downvotes,
-      }
-    })
-    const topItem = itemScores.sort((a, b) => b.score - a.score)[0]
-    if (topItem.score > 0) {
-      mostWanted = { name: topItem.item.name, score: topItem.score }
-    }
-  }
-
-  const recentItems = allItems
-    .sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    )
-    .slice(0, 5).length
+  const highPriority = allItems.filter((i) => i.priority === "high").length
+  const yourSubmissions = allItems.filter((i) => i.submittedBy === userId).length
+  const totalBudget = allItems.reduce(
+    (sum, item) => sum + (item.estimatedCost ?? 0),
+    0
+  )
 
   return {
     totalItems,
-    yourItems,
-    mostWanted,
-    recentItems,
+    highPriority,
+    yourSubmissions,
+    totalBudget,
   }
 }
 

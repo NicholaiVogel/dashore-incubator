@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useTransition, useCallback } from "react"
+import { useState, useEffect, useTransition, useCallback, useMemo } from "react"
 import {
   IconArrowBigDown,
   IconArrowBigDownFilled,
@@ -13,6 +13,7 @@ import {
   IconFileSpreadsheet,
   IconFileTypePdf,
   IconLoader2,
+  IconPlus,
   IconRefresh,
   IconTrash,
 } from "@tabler/icons-react"
@@ -47,6 +48,7 @@ import {
   toggleItemVote,
   deleteWishlistItem,
   type WishlistItemWithMeta,
+  type WishlistStats as WishlistStatsType,
   type SortOption,
   type VoteType,
 } from "@/app/actions/wishlist"
@@ -66,17 +68,30 @@ interface WishlistTableProps {
 export function WishlistTable({ userId, userName }: WishlistTableProps) {
   const [isPending, startTransition] = useTransition()
   const [items, setItems] = useState<WishlistItemWithMeta[]>([])
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<WishlistStatsType>({
     totalItems: 0,
-    yourItems: 0,
-    mostWanted: null as { name: string; score: number } | null,
-    recentItems: 0,
+    highPriority: 0,
+    yourSubmissions: 0,
+    totalBudget: 0,
   })
+  const [search, setSearch] = useState("")
   const [category, setCategory] = useState("all")
+  const [priority, setPriority] = useState("all")
   const [sortBy, setSortBy] = useState<SortOption>("score")
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState<WishlistItemWithMeta | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
+
+  const filteredItems = useMemo(() => {
+    return items.filter((item) => {
+      const matchesSearch =
+        search === "" ||
+        item.name.toLowerCase().includes(search.toLowerCase()) ||
+        item.description.toLowerCase().includes(search.toLowerCase())
+      const matchesPriority = priority === "all" || item.priority === priority
+      return matchesSearch && matchesPriority
+    })
+  }, [items, search, priority])
 
   const fetchData = useCallback(() => {
     startTransition(async () => {
@@ -100,7 +115,7 @@ export function WishlistTable({ userId, userName }: WishlistTableProps) {
 
   const getExportData = () => {
     const headers = ["Name", "Description", "Category", "Priority", "Est. Cost", "Score", "Submitted By", "Created"]
-    const rows = items.map((item) => [
+    const rows = filteredItems.map((item) => [
       item.name,
       item.description,
       item.category,
@@ -178,7 +193,7 @@ export function WishlistTable({ userId, userName }: WishlistTableProps) {
               <Button
                 variant="outline"
                 size="sm"
-                disabled={items.length === 0}
+                disabled={filteredItems.length === 0}
                 className="gap-2"
               >
                 <IconDownload className="size-4" />
@@ -206,17 +221,24 @@ export function WishlistTable({ userId, userName }: WishlistTableProps) {
             <IconRefresh className={cn("size-4", isPending && "animate-spin")} />
             <span className="hidden sm:inline">Refresh</span>
           </Button>
+          <Button size="sm" onClick={() => setAddDialogOpen(true)} className="gap-2">
+            <IconPlus className="size-4" />
+            <span className="hidden sm:inline">Add Item</span>
+          </Button>
         </div>
       </div>
 
       <WishlistStats stats={stats} />
 
       <WishlistFilters
+        search={search}
         category={category}
+        priority={priority}
         sortBy={sortBy}
+        onSearchChange={setSearch}
         onCategoryChange={setCategory}
+        onPriorityChange={setPriority}
         onSortChange={(sort) => setSortBy(sort as SortOption)}
-        onAddClick={() => setAddDialogOpen(true)}
       />
 
       <div className="px-4 lg:px-6">
@@ -231,6 +253,12 @@ export function WishlistTable({ userId, userName }: WishlistTableProps) {
             </p>
             <p className="text-muted-foreground text-center text-sm">
               Be the first to add something!
+            </p>
+          </div>
+        ) : filteredItems.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-2 py-12">
+            <p className="text-muted-foreground text-center">
+              No items match your filters.
             </p>
           </div>
         ) : (
@@ -248,7 +276,7 @@ export function WishlistTable({ userId, userName }: WishlistTableProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {items.map((item) => (
+                {filteredItems.map((item) => (
                   <WishlistTableRow
                     key={item.id}
                     item={item}
