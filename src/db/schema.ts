@@ -27,12 +27,24 @@ export const wishlistComments = sqliteTable("wishlist_comments", {
   itemId: text("item_id")
     .notNull()
     .references(() => wishlistItems.id, { onDelete: "cascade" }),
+  parentId: text("parent_id"),
   userId: text("user_id").notNull(),
   userName: text("user_name").notNull(),
   content: text("content").notNull(),
   createdAt: text("created_at").notNull(),
 })
 
+export const wishlistCommentVotes = sqliteTable("wishlist_comment_votes", {
+  id: text("id").primaryKey(),
+  commentId: text("comment_id")
+    .notNull()
+    .references(() => wishlistComments.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull(),
+  voteType: text("vote_type").notNull(), // "up" | "down"
+  createdAt: text("created_at").notNull(),
+})
+
 export type WishlistItem = typeof wishlistItems.$inferSelect
 export type WishlistVote = typeof wishlistVotes.$inferSelect
 export type WishlistComment = typeof wishlistComments.$inferSelect
+export type WishlistCommentVote = typeof wishlistCommentVotes.$inferSelect

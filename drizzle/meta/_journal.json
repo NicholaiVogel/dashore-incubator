@@ -8,6 +8,13 @@
       "when": 1769063383310,
       "tag": "0000_flawless_paladin",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1769076224750,
+      "tag": "0001_modern_mad_thinker",
+      "breakpoints": true
     }
   ]
 }
