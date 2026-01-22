@@ -19,6 +19,7 @@ export const wishlistVotes = sqliteTable("wishlist_votes", {
     .notNull()
     .references(() => wishlistItems.id, { onDelete: "cascade" }),
   userId: text("user_id").notNull(),
+  voteType: text("vote_type").notNull(), // "up" | "down"
   createdAt: text("created_at").notNull(),
 })
 

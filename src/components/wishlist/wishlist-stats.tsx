@@ -12,7 +12,7 @@ interface WishlistStatsProps {
   stats: {
     totalItems: number
     yourItems: number
-    mostWanted: { name: string; votes: number } | null
+    mostWanted: { name: string; score: number } | null
     recentItems: number
   }
 }
@@ -40,7 +40,7 @@ export function WishlistStats({ stats }: WishlistStatsProps) {
             <span className="flex items-center gap-2">
               <span className="truncate">{stats.mostWanted.name}</span>
               <span className="text-muted-foreground text-sm font-normal">
-                ({stats.mostWanted.votes} votes)
+                (score: {stats.mostWanted.score})
               </span>
             </span>
           ) : (

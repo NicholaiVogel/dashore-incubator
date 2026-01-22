@@ -2,6 +2,10 @@
 
 import { useState, useTransition, useEffect } from "react"
 import {
+  IconArrowBigDown,
+  IconArrowBigDownFilled,
+  IconArrowBigUp,
+  IconArrowBigUpFilled,
   IconThumbUp,
   IconThumbUpFilled,
   IconThumbDown,
@@ -29,7 +33,7 @@ import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import {
   getItemWithComments,
-  toggleVote,
+  toggleItemVote,
   addComment,
   deleteComment,
   toggleCommentVote,
@@ -194,18 +198,29 @@ export function WishlistItemDetail({
   const [newComment, setNewComment] = useState("")
   const [replyingTo, setReplyingTo] = useState<CommentWithMeta | null>(null)
   const [voteState, setVoteState] = useState({
-    hasVoted: item?.hasVoted ?? false,
-    voteCount: item?.voteCount ?? 0,
+    upvotes: item?.upvotes ?? 0,
+    downvotes: item?.downvotes ?? 0,
+    userVote: item?.userVote ?? null,
   })
+
+  const score = voteState.upvotes - voteState.downvotes
 
   useEffect(() => {
     if (item && open) {
-      setVoteState({ hasVoted: item.hasVoted, voteCount: item.voteCount })
+      setVoteState({
+        upvotes: item.upvotes,
+        downvotes: item.downvotes,
+        userVote: item.userVote,
+      })
       startTransition(async () => {
         const data = await getItemWithComments(item.id, userId)
         if (data) {
           setComments(data.comments)
-          setVoteState({ hasVoted: data.hasVoted, voteCount: data.voteCount })
+          setVoteState({
+            upvotes: data.upvotes,
+            downvotes: data.downvotes,
+            userVote: data.userVote,
+          })
         }
       })
     }
@@ -213,16 +228,39 @@ export function WishlistItemDetail({
 
   if (!item) return null
 
-  const handleVote = () => {
-    const newVoted = !voteState.hasVoted
-    const newCount = newVoted ? voteState.voteCount + 1 : voteState.voteCount - 1
-    setVoteState({ hasVoted: newVoted, voteCount: newCount })
+  const handleVote = (voteType: VoteType) => {
+    const prevState = { ...voteState }
+    let newUpvotes = voteState.upvotes
+    let newDownvotes = voteState.downvotes
+    let newUserVote: VoteType | null = voteType
+
+    if (voteState.userVote === voteType) {
+      if (voteType === "up") newUpvotes--
+      else newDownvotes--
+      newUserVote = null
+    } else if (voteState.userVote) {
+      if (voteState.userVote === "up") newUpvotes--
+      else newDownvotes--
+      if (voteType === "up") newUpvotes++
+      else newDownvotes++
+    } else {
+      if (voteType === "up") newUpvotes++
+      else newDownvotes++
+    }
+
+    setVoteState({ upvotes: newUpvotes, downvotes: newDownvotes, userVote: newUserVote })
 
     startTransition(async () => {
-      const result = await toggleVote(item.id, userId)
+      const result = await toggleItemVote(item.id, userId, voteType)
       if (!result.success) {
-        setVoteState({ hasVoted: item.hasVoted, voteCount: item.voteCount })
+        setVoteState(prevState)
         toast.error(result.error || "Failed to vote")
+      } else {
+        setVoteState({
+          upvotes: result.upvotes,
+          downvotes: result.downvotes,
+          userVote: result.userVote,
+        })
       }
     })
   }
@@ -368,20 +406,45 @@ export function WishlistItemDetail({
               Submitted by {item.submittedByName} &middot;{" "}
               {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
             </span>
-            <Button
-              variant={voteState.hasVoted ? "default" : "outline"}
-              size="sm"
-              className="gap-1"
-              onClick={handleVote}
-              disabled={isPending}
-            >
-              {voteState.hasVoted ? (
-                <IconThumbUpFilled className="size-4" />
-              ) : (
-                <IconThumbUp className="size-4" />
-              )}
-              {voteState.voteCount}
-            </Button>
+            <div className="flex items-center gap-0.5">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => handleVote("up")}
+                disabled={isPending}
+              >
+                {voteState.userVote === "up" ? (
+                  <IconArrowBigUpFilled className="size-5 text-green-500" />
+                ) : (
+                  <IconArrowBigUp className="size-5" />
+                )}
+              </Button>
+              <span
+                className={`min-w-[1.5rem] text-center text-sm font-medium ${
+                  score > 0
+                    ? "text-green-500"
+                    : score < 0
+                      ? "text-red-500"
+                      : "text-muted-foreground"
+                }`}
+              >
+                {score}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => handleVote("down")}
+                disabled={isPending}
+              >
+                {voteState.userVote === "down" ? (
+                  <IconArrowBigDownFilled className="size-5 text-red-500" />
+                ) : (
+                  <IconArrowBigDown className="size-5" />
+                )}
+              </Button>
+            </div>
           </div>
 
           <Separator />

@@ -53,6 +53,7 @@ interface WishlistAddDialogProps {
   onOpenChange: (open: boolean) => void
   userId: string
   userName: string
+  onSuccess?: () => void
 }
 
 export function WishlistAddDialog({
@@ -60,6 +61,7 @@ export function WishlistAddDialog({
   onOpenChange,
   userId,
   userName,
+  onSuccess,
 }: WishlistAddDialogProps) {
   const isMobile = useIsMobile()
   const [isPending, startTransition] = useTransition()
@@ -92,6 +94,7 @@ export function WishlistAddDialog({
         toast.success("Item added to wishlist")
         form.reset()
         onOpenChange(false)
+        onSuccess?.()
       } else {
         toast.error(result.error || "Failed to add item")
       }
