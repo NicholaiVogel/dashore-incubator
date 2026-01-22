@@ -1,74 +1,42 @@
 "use client"
 
-import { IconList, IconStar, IconUser, IconClock } from "@tabler/icons-react"
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
+import type { WishlistStats as WishlistStatsType } from "@/app/actions/wishlist"
 
 interface WishlistStatsProps {
-  stats: {
-    totalItems: number
-    yourItems: number
-    mostWanted: { name: string; score: number } | null
-    recentItems: number
-  }
+  stats: WishlistStatsType
 }
 
 export function WishlistStats({ stats }: WishlistStatsProps) {
   return (
-    <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardDescription>Total Items</CardDescription>
-          <IconList className="text-muted-foreground size-4" />
-        </CardHeader>
-        <CardTitle className="px-6 pb-6 text-2xl font-semibold tabular-nums">
-          {stats.totalItems}
-        </CardTitle>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardDescription>Most Wanted</CardDescription>
-          <IconStar className="text-muted-foreground size-4" />
-        </CardHeader>
-        <CardTitle className="px-6 pb-6 text-2xl font-semibold">
-          {stats.mostWanted ? (
-            <span className="flex items-center gap-2">
-              <span className="truncate">{stats.mostWanted.name}</span>
-              <span className="text-muted-foreground text-sm font-normal">
-                (score: {stats.mostWanted.score})
-              </span>
+    <div className="px-4 lg:px-6">
+      <Card className="px-4 py-3">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+          <span>
+            <span className="text-muted-foreground">Total Items:</span>{" "}
+            <span className="font-medium">{stats.totalItems}</span>
+          </span>
+          <span className="text-muted-foreground">|</span>
+          <span>
+            <span className="text-muted-foreground">High Priority:</span>{" "}
+            <span className="font-medium">{stats.highPriority}</span>
+          </span>
+          <span className="text-muted-foreground">|</span>
+          <span>
+            <span className="text-muted-foreground">Your Submissions:</span>{" "}
+            <span className="font-medium">{stats.yourSubmissions}</span>
+          </span>
+          <span className="text-muted-foreground">|</span>
+          <span>
+            <span className="text-muted-foreground">Est. Total Budget:</span>{" "}
+            <span className="font-medium">
+              ${stats.totalBudget.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
             </span>
-          ) : (
-            <span className="text-muted-foreground text-base font-normal">
-              No votes yet
-            </span>
-          )}
-        </CardTitle>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardDescription>Your Submissions</CardDescription>
-          <IconUser className="text-muted-foreground size-4" />
-        </CardHeader>
-        <CardTitle className="px-6 pb-6 text-2xl font-semibold tabular-nums">
-          {stats.yourItems}
-        </CardTitle>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardDescription>Recent (Last 5)</CardDescription>
-          <IconClock className="text-muted-foreground size-4" />
-        </CardHeader>
-        <CardTitle className="px-6 pb-6 text-2xl font-semibold tabular-nums">
-          {stats.recentItems}
-        </CardTitle>
+          </span>
+        </div>
       </Card>
     </div>
   )
