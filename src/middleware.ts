@@ -1,7 +1,7 @@
 import { authkitMiddleware } from "@workos-inc/authkit-nextjs";
 
 export default authkitMiddleware({
-	redirectUri: "https://fortura.cc/api/auth/callback",
+	redirectUri: process.env.WORKOS_REDIRECT_URI || "https://fortura.cc/api/auth/callback",
 	middlewareAuth: {
 		enabled: true,
 		unauthenticatedPaths: ["/"],
