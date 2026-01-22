@@ -47,9 +47,9 @@ export function WishlistFilters({
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="score">Top Score</SelectItem>
             <SelectItem value="newest">Newest</SelectItem>
             <SelectItem value="oldest">Oldest</SelectItem>
-            <SelectItem value="votes">Most Votes</SelectItem>
             <SelectItem value="priority">Priority</SelectItem>
           </SelectContent>
         </Select>

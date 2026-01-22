@@ -18,7 +18,8 @@ export type WishlistCategory =
   | "storage"
   | "other"
 export type WishlistPriority = "critical" | "high" | "medium" | "low"
-export type SortOption = "newest" | "oldest" | "votes" | "priority"
+export type SortOption = "newest" | "oldest" | "score" | "priority"
+export type VoteType = "up" | "down"
 
 export interface WishlistItemInput {
   name: string
@@ -40,9 +41,11 @@ export interface WishlistItemWithMeta {
   submittedBy: string
   submittedByName: string
   createdAt: string
-  voteCount: number
+  upvotes: number
+  downvotes: number
+  score: number
   commentCount: number
-  hasVoted: boolean
+  userVote: VoteType | null
 }
 
 function generateId(): string {
@@ -52,7 +55,7 @@ function generateId(): string {
 export async function getWishlistItems(
   userId: string,
   category?: string,
-  sortBy: SortOption = "newest"
+  sortBy: SortOption = "score"
 ): Promise<WishlistItemWithMeta[]> {
   const { env } = await getCloudflareContext()
   const db = getDb(env.DB)
@@ -83,11 +86,16 @@ export async function getWishlistItems(
   const itemsWithMeta = items.map((item) => {
     const itemVotes = votes.filter((v) => v.itemId === item.id)
     const itemComments = comments.filter((c) => c.itemId === item.id)
+    const upvotes = itemVotes.filter((v) => v.voteType === "up").length
+    const downvotes = itemVotes.filter((v) => v.voteType === "down").length
+    const userVoteRecord = itemVotes.find((v) => v.userId === userId)
     return {
       ...item,
-      voteCount: itemVotes.length,
+      upvotes,
+      downvotes,
+      score: upvotes - downvotes,
       commentCount: itemComments.length,
-      hasVoted: itemVotes.some((v) => v.userId === userId),
+      userVote: userVoteRecord ? (userVoteRecord.voteType as VoteType) : null,
     }
   })
 
@@ -104,8 +112,11 @@ export async function getWishlistItems(
         (a, b) =>
           new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       )
-    case "votes":
-      return itemsWithMeta.sort((a, b) => b.voteCount - a.voteCount)
+    case "score":
+      return itemsWithMeta.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      })
     case "priority":
       return itemsWithMeta.sort(
         (a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]
@@ -149,10 +160,11 @@ export async function addWishlistItem(
   }
 }
 
-export async function toggleVote(
+export async function toggleItemVote(
   itemId: string,
-  userId: string
-): Promise<{ success: boolean; voted: boolean; error?: string }> {
+  userId: string,
+  voteType: VoteType
+): Promise<ToggleVoteResult> {
   try {
     const { env } = await getCloudflareContext()
     const db = getDb(env.DB)
@@ -166,24 +178,51 @@ export async function toggleVote(
       .limit(1)
 
     if (existingVote.length > 0) {
-      await db
-        .delete(wishlistVotes)
-        .where(eq(wishlistVotes.id, existingVote[0].id))
-      revalidatePath("/dashboard/wishlist")
-      return { success: true, voted: false }
+      if (existingVote[0].voteType === voteType) {
+        await db
+          .delete(wishlistVotes)
+          .where(eq(wishlistVotes.id, existingVote[0].id))
+      } else {
+        await db
+          .update(wishlistVotes)
+          .set({ voteType })
+          .where(eq(wishlistVotes.id, existingVote[0].id))
+      }
     } else {
       await db.insert(wishlistVotes).values({
         id: generateId(),
         itemId,
         userId,
+        voteType,
         createdAt: new Date().toISOString(),
       })
-      revalidatePath("/dashboard/wishlist")
-      return { success: true, voted: true }
+    }
+
+    const allVotes = await db
+      .select()
+      .from(wishlistVotes)
+      .where(eq(wishlistVotes.itemId, itemId))
+
+    const upvotes = allVotes.filter((v) => v.voteType === "up").length
+    const downvotes = allVotes.filter((v) => v.voteType === "down").length
+    const currentUserVote = allVotes.find((v) => v.userId === userId)
+
+    revalidatePath("/dashboard/wishlist")
+    return {
+      success: true,
+      upvotes,
+      downvotes,
+      userVote: currentUserVote ? (currentUserVote.voteType as VoteType) : null,
     }
   } catch (error) {
-    console.error("Failed to toggle vote:", error)
-    return { success: false, voted: false, error: "Failed to toggle vote" }
+    console.error("Failed to toggle item vote:", error)
+    return {
+      success: false,
+      upvotes: 0,
+      downvotes: 0,
+      userVote: null,
+      error: "Failed to toggle vote",
+    }
   }
 }
 
@@ -265,8 +304,6 @@ export async function deleteComment(
     return { success: false, error: "Failed to delete comment" }
   }
 }
-
-export type VoteType = "up" | "down"
 
 export interface ToggleVoteResult {
   success: boolean
@@ -378,6 +415,10 @@ export async function getItemWithComments(itemId: string, userId: string) {
     .from(wishlistVotes)
     .where(eq(wishlistVotes.itemId, itemId))
 
+  const upvotes = votes.filter((v) => v.voteType === "up").length
+  const downvotes = votes.filter((v) => v.voteType === "down").length
+  const userVoteRecord = votes.find((v) => v.userId === userId)
+
   const rawComments = await db
     .select()
     .from(wishlistComments)
@@ -394,15 +435,23 @@ export async function getItemWithComments(itemId: string, userId: string) {
     const votesForComment = commentVotes.filter(
       (v) => v.commentId === comment.id
     )
-    const upvotes = votesForComment.filter((v) => v.voteType === "up").length
-    const downvotes = votesForComment.filter((v) => v.voteType === "down").length
-    const userVoteRecord = votesForComment.find((v) => v.userId === userId)
+    const commentUpvotes = votesForComment.filter(
+      (v) => v.voteType === "up"
+    ).length
+    const commentDownvotes = votesForComment.filter(
+      (v) => v.voteType === "down"
+    ).length
+    const commentUserVoteRecord = votesForComment.find(
+      (v) => v.userId === userId
+    )
 
     return {
       ...comment,
-      upvotes,
-      downvotes,
-      userVote: userVoteRecord ? (userVoteRecord.voteType as VoteType) : null,
+      upvotes: commentUpvotes,
+      downvotes: commentDownvotes,
+      userVote: commentUserVoteRecord
+        ? (commentUserVoteRecord.voteType as VoteType)
+        : null,
       replies: [],
     }
   })
@@ -419,8 +468,10 @@ export async function getItemWithComments(itemId: string, userId: string) {
 
   return {
     ...item[0],
-    voteCount: votes.length,
-    hasVoted: votes.some((v) => v.userId === userId),
+    upvotes,
+    downvotes,
+    score: upvotes - downvotes,
+    userVote: userVoteRecord ? (userVoteRecord.voteType as VoteType) : null,
     comments: topLevel,
   }
 }
@@ -437,13 +488,18 @@ export async function getWishlistStats(userId: string) {
 
   let mostWanted = null
   if (allItems.length > 0) {
-    const itemVoteCounts = allItems.map((item) => ({
-      item,
-      votes: allVotes.filter((v) => v.itemId === item.id).length,
-    }))
-    const topItem = itemVoteCounts.sort((a, b) => b.votes - a.votes)[0]
-    if (topItem.votes > 0) {
-      mostWanted = { name: topItem.item.name, votes: topItem.votes }
+    const itemScores = allItems.map((item) => {
+      const itemVotes = allVotes.filter((v) => v.itemId === item.id)
+      const upvotes = itemVotes.filter((v) => v.voteType === "up").length
+      const downvotes = itemVotes.filter((v) => v.voteType === "down").length
+      return {
+        item,
+        score: upvotes - downvotes,
+      }
+    })
+    const topItem = itemScores.sort((a, b) => b.score - a.score)[0]
+    if (topItem.score > 0) {
+      mostWanted = { name: topItem.item.name, score: topItem.score }
     }
   }
 

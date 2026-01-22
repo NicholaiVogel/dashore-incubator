@@ -2,8 +2,10 @@
 
 import { useState, useTransition } from "react"
 import {
-  IconThumbUp,
-  IconThumbUpFilled,
+  IconArrowBigDown,
+  IconArrowBigDownFilled,
+  IconArrowBigUp,
+  IconArrowBigUpFilled,
   IconMessageCircle,
   IconServer,
   IconCode,
@@ -25,9 +27,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
-  toggleVote,
+  toggleItemVote,
   deleteWishlistItem,
   type WishlistItemWithMeta,
+  type VoteType,
 } from "@/app/actions/wishlist"
 
 const categoryIcons: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -57,27 +60,49 @@ export function WishlistItemCard({
   onViewDetails,
 }: WishlistItemCardProps) {
   const [isPending, startTransition] = useTransition()
-  const [optimisticVote, setOptimisticVote] = useState({
-    hasVoted: item.hasVoted,
-    voteCount: item.voteCount,
+  const [voteState, setVoteState] = useState({
+    upvotes: item.upvotes,
+    downvotes: item.downvotes,
+    userVote: item.userVote,
   })
 
+  const score = voteState.upvotes - voteState.downvotes
   const CategoryIcon = categoryIcons[item.category] || IconDots
   const isOwner = item.submittedBy === userId
 
-  const handleVote = () => {
-    const newVoted = !optimisticVote.hasVoted
-    const newCount = newVoted
-      ? optimisticVote.voteCount + 1
-      : optimisticVote.voteCount - 1
+  const handleVote = (voteType: VoteType) => {
+    const prevState = { ...voteState }
+    let newUpvotes = voteState.upvotes
+    let newDownvotes = voteState.downvotes
+    let newUserVote: VoteType | null = voteType
 
-    setOptimisticVote({ hasVoted: newVoted, voteCount: newCount })
+    if (voteState.userVote === voteType) {
+      if (voteType === "up") newUpvotes--
+      else newDownvotes--
+      newUserVote = null
+    } else if (voteState.userVote) {
+      if (voteState.userVote === "up") newUpvotes--
+      else newDownvotes--
+      if (voteType === "up") newUpvotes++
+      else newDownvotes++
+    } else {
+      if (voteType === "up") newUpvotes++
+      else newDownvotes++
+    }
+
+    setVoteState({ upvotes: newUpvotes, downvotes: newDownvotes, userVote: newUserVote })
 
     startTransition(async () => {
-      const result = await toggleVote(item.id, userId)
+      const result = await toggleItemVote(item.id, userId, voteType)
       if (!result.success) {
-        setOptimisticVote({ hasVoted: item.hasVoted, voteCount: item.voteCount })
+        setVoteState(prevState)
         toast.error(result.error || "Failed to vote")
+      } else {
+        setVoteState({
+          upvotes: result.upvotes,
+          downvotes: result.downvotes,
+          userVote: result.userVote,
+        })
       }
     })
   }
@@ -172,20 +197,45 @@ export function WishlistItemCard({
               <IconMessageCircle className="size-3.5" />
               <span className="text-xs">{item.commentCount}</span>
             </Button>
-            <Button
-              variant={optimisticVote.hasVoted ? "default" : "ghost"}
-              size="sm"
-              className="h-7 gap-1 px-2"
-              onClick={handleVote}
-              disabled={isPending}
-            >
-              {optimisticVote.hasVoted ? (
-                <IconThumbUpFilled className="size-3.5" />
-              ) : (
-                <IconThumbUp className="size-3.5" />
-              )}
-              <span className="text-xs">{optimisticVote.voteCount}</span>
-            </Button>
+            <div className="flex items-center gap-0.5">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={() => handleVote("up")}
+                disabled={isPending}
+              >
+                {voteState.userVote === "up" ? (
+                  <IconArrowBigUpFilled className="size-4 text-green-500" />
+                ) : (
+                  <IconArrowBigUp className="size-4" />
+                )}
+              </Button>
+              <span
+                className={`min-w-[1.5rem] text-center text-xs font-medium ${
+                  score > 0
+                    ? "text-green-500"
+                    : score < 0
+                      ? "text-red-500"
+                      : "text-muted-foreground"
+                }`}
+              >
+                {score}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={() => handleVote("down")}
+                disabled={isPending}
+              >
+                {voteState.userVote === "down" ? (
+                  <IconArrowBigDownFilled className="size-4 text-red-500" />
+                ) : (
+                  <IconArrowBigDown className="size-4" />
+                )}
+              </Button>
+            </div>
           </div>
         </div>
         <div className="text-muted-foreground text-xs">
