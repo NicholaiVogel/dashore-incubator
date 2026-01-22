@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthKitProvider } from "@workos-inc/authkit-nextjs/components";
 import { withAuth } from "@workos-inc/authkit-nextjs";
+import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -28,12 +29,14 @@ export default async function RootLayout({
 	const { accessToken: _, ...initialAuth } = auth;
 
 	return (
-		<html lang="en">
+		<html lang="en" suppressHydrationWarning>
 			<head>
 				<link rel="icon" href="/favicon.svg" type="image/svg+xml"></link>
 			</head>
 			<body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-				<AuthKitProvider initialAuth={initialAuth}>{children}</AuthKitProvider>
+				<ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+					<AuthKitProvider initialAuth={initialAuth}>{children}</AuthKitProvider>
+				</ThemeProvider>
 			</body>
 		</html>
 	);
