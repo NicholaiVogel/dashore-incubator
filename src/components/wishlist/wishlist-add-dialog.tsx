@@ -42,8 +42,8 @@ const formSchema = z.object({
   description: z.string().min(1, "Description is required").max(500, "Description too long"),
   category: z.enum(["hardware", "software", "network", "storage", "other"]),
   priority: z.enum(["critical", "high", "medium", "low"]),
-  estimatedCost: z.coerce.number().positive().optional().or(z.literal("")),
-  link: z.string().url().optional().or(z.literal("")),
+  estimatedCost: z.string().optional(),
+  link: z.string().optional(),
 })
 
 type FormData = z.infer<typeof formSchema>
